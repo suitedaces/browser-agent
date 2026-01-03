@@ -1,27 +1,16 @@
 {
-  "name": "taskhomie-extension",
-  "version": "1.0.0",
+  "name": "taskhomie",
+  "private": true,
   "type": "module",
   "scripts": {
-    "dev": "vite build --watch",
-    "build": "vite build",
-    "clean": "rm -rf dist"
-  },
-  "dependencies": {
-    "react": "^19.0.0",
-    "react-dom": "^19.0.0",
-    "streamdown": "^1.6.10",
-    "zustand": "^5.0.0"
+    "dev": "pnpm -r dev",
+    "build": "pnpm -r build",
+    "dev:extension": "pnpm --filter @taskhomie/extension dev",
+    "dev:server": "pnpm --filter @taskhomie/server dev",
+    "build:extension": "pnpm --filter @taskhomie/extension build",
+    "build:server": "pnpm --filter @taskhomie/server build"
   },
   "devDependencies": {
-    "@types/chrome": "^0.0.270",
-    "@types/react": "^19.0.0",
-    "@types/react-dom": "^19.0.0",
-    "@vitejs/plugin-react": "^4.3.0",
-    "autoprefixer": "^10.4.20",
-    "postcss": "^8.4.40",
-    "tailwindcss": "^3.4.10",
-    "typescript": "^5.5.0",
-    "vite": "^7.3.0"
+    "typescript": "^5.5.0"
   }
 }
