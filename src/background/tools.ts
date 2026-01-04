@@ -77,12 +77,10 @@ export const TOOLS = [
   }
 ];
 
-// element UID → backendNodeId map (populated by content script)
-let elementMap: Map<string, number> = new Map();
+// track current snapshot id for stale element detection
 let currentSnapshotId = 0;
 
-export function setElementMap(map: Record<string, number>, snapshotId: number) {
-  elementMap = new Map(Object.entries(map));
+export function setSnapshotId(snapshotId: number) {
   currentSnapshotId = snapshotId;
 }
 
@@ -92,16 +90,25 @@ async function getElementPosition(uid: string): Promise<{ x: number; y: number }
     throw new Error(`Stale element ID ${uid}. Take a new snapshot with see_page.`);
   }
 
-  const backendNodeId = elementMap.get(uid);
-  if (!backendNodeId) {
-    throw new Error(`Element ${uid} not found`);
-  }
-
+  const backendNodeId = await cdp.getBackendNodeId(uid);
   return cdp.getElementCenter(backendNodeId);
+}
+
+async function ensureContentScript(tabId: number) {
+  try {
+    await chrome.tabs.sendMessage(tabId, { type: 'ping' });
+  } catch {
+    await chrome.scripting.executeScript({
+      target: { tabId },
+      files: ['content/index.js']
+    });
+  }
 }
 
 export async function executeTool(tabId: number, name: string, input: Record<string, unknown>): Promise<{ text?: string; image?: string }> {
   console.log('[tools] executing', name, input);
+
+  await ensureContentScript(tabId);
 
   try {
     await cdp.attach(tabId);

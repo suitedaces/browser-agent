@@ -136,6 +136,25 @@ export async function evaluate(expression: string): Promise<unknown> {
   return result.result.value;
 }
 
+// get backendNodeId from element uid
+export async function getBackendNodeId(uid: string): Promise<number> {
+  // get document root
+  const { root } = await sendCommand<{ root: { nodeId: number } }>('DOM.getDocument');
+
+  // find element by data attribute
+  const { nodeId } = await sendCommand<{ nodeId: number }>('DOM.querySelector', {
+    nodeId: root.nodeId,
+    selector: `[data-taskhomie-uid="${uid}"]`
+  });
+
+  // get backend node id from node id
+  const { node } = await sendCommand<{ node: { backendNodeId: number } }>('DOM.describeNode', {
+    nodeId
+  });
+
+  return node.backendNodeId;
+}
+
 // get element center from backendNodeId
 export async function getElementCenter(backendNodeId: number): Promise<{ x: number; y: number }> {
   const { model } = await sendCommand<{ model: { content: number[] } }>('DOM.getBoxModel', {

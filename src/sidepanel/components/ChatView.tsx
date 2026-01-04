@@ -53,8 +53,35 @@ export default function ChatView() {
     target.style.height = Math.min(target.scrollHeight, 100) + 'px';
   };
 
+  const copyAllAgentOutput = () => {
+    const agentMessages = messages.filter(m => m.role === 'assistant');
+    const output = agentMessages.map(m => {
+      let text = m.content;
+      if (m.toolResult) {
+        text += `\n\nTool Result:\n${m.toolResult}`;
+      }
+      return text;
+    }).join('\n\n---\n\n');
+    navigator.clipboard.writeText(output);
+  };
+
   return (
     <div className="flex flex-col h-full">
+      {/* header with copy button */}
+      {messages.length > 0 && (
+        <div className="px-3 pt-2 pb-1 flex justify-end">
+          <button
+            onClick={copyAllAgentOutput}
+            className="flex items-center gap-1.5 px-2 py-1 text-[11px] text-white/50 hover:text-white/80 hover:bg-white/5 rounded-lg transition-colors"
+          >
+            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <rect x="9" y="9" width="13" height="13" rx="2" ry="2" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+            <span>copy all</span>
+          </button>
+        </div>
+      )}
       {/* messages area */}
       <div ref={scrollRef} className="flex-1 overflow-y-auto px-3 py-3">
         {messages.length === 0 && !streamingText && !streamingThinking ? (

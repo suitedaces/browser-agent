@@ -2,65 +2,124 @@ let snapshotId = 0;
 
 interface SnapshotResult {
   snapshot: string;
-  elementMap: Map<string, number>;
   snapshotId: number;
 }
 
-export function getA11ySnapshot(verbose: boolean): SnapshotResult {
+export function getA11ySnapshot(verbose: boolean, maxTokens = 15000): SnapshotResult {
   snapshotId++;
-  const elementMap = new Map<string, number>();
   let nodeIndex = 0;
 
-  const lines: string[] = [];
+  // collect all elements with priority scores
+  const elements: Array<{
+    node: Element;
+    score: number;
+    depth: number;
+    role: string;
+    name: string;
+  }> = [];
 
-  function walk(node: Element, depth = 0): void {
+  function scoreElement(node: Element, role: string, name: string, depth: number): number {
+    let score = 0;
+
+    // critical interactive elements
+    if (['button', 'link', 'textbox', 'searchbox', 'checkbox', 'radio'].includes(role)) score += 100;
+
+    // navigation/landmarks
+    if (['navigation', 'main', 'search', 'form'].includes(role)) score += 80;
+    if (['heading'].includes(role)) score += 60;
+
+    // has meaningful name
+    if (name && name.length > 3) score += 20;
+
+    // viewport visibility (prioritize what user sees)
+    const rect = (node as HTMLElement).getBoundingClientRect?.();
+    if (rect && rect.top < window.innerHeight && rect.bottom > 0 && rect.left < window.innerWidth) {
+      score += 50;
+    }
+
+    // penalize depth (prefer shallow elements)
+    score -= depth * 2;
+
+    // penalize hidden elements
+    if ((node as HTMLElement).offsetWidth === 0 || (node as HTMLElement).offsetHeight === 0) {
+      score -= 100;
+    }
+
+    // penalize decorative
+    if (node.getAttribute('aria-hidden') === 'true') score -= 50;
+    if (['presentation', 'none', 'img'].includes(role)) score -= 30;
+
+    return score;
+  }
+
+  // collect all elements
+  function collect(node: Element, depth = 0): void {
+    if (depth > 20) return;
+
     const role = node.getAttribute('role') || getImplicitRole(node);
     const name = getAccessibleName(node);
-    const isInteractive = isInteractiveRole(role);
+    const score = scoreElement(node, role, name, depth);
 
-    if (!verbose && !isInteractive && !name) {
-      for (const child of node.children) {
-        walk(child, depth);
-      }
-      return;
+    if (score > -50) {
+      elements.push({ node, score, depth, role, name });
     }
-
-    const uid = `${snapshotId}_${nodeIndex}`;
-    nodeIndex++;
-
-    // store reference for later interaction
-    (node as HTMLElement).dataset.taskhomieUid = uid;
-    elementMap.set(uid, nodeIndex);
-
-    const indent = '  '.repeat(depth);
-    let line = `${indent}uid=${uid} ${role}`;
-    if (name) line += ` "${name}"`;
-
-    // add useful attributes
-    if (node.tagName === 'A') {
-      const href = node.getAttribute('href');
-      if (href) line += ` href="${href}"`;
-    }
-    if (node.tagName === 'INPUT') {
-      const type = node.getAttribute('type') || 'text';
-      line += ` type="${type}"`;
-      if ((node as HTMLInputElement).value) {
-        line += ` value="${(node as HTMLInputElement).value}"`;
-      }
-    }
-
-    lines.push(line);
 
     for (const child of node.children) {
-      walk(child, depth + 1);
+      collect(child, depth + 1);
     }
   }
 
-  walk(document.body);
+  collect(document.body);
+
+  // sort by score (highest first)
+  elements.sort((a, b) => b.score - a.score);
+
+  const lines: string[] = [];
+  let estimatedTokens = 0;
+  const includedUids = new Set<string>();
+
+  // build snapshot staying under token budget
+  for (const { node, depth, role, name } of elements) {
+    const uid = `${snapshotId}_${nodeIndex}`;
+    nodeIndex++;
+
+    (node as HTMLElement).dataset.taskhomieUid = uid;
+    includedUids.add(uid);
+
+    const indent = '  '.repeat(Math.min(depth, 8));
+    let line = `${indent}${uid} ${role}`;
+
+    if (name) line += ` "${name}"`; // no truncation
+
+    // add attributes
+    if (node.tagName === 'A') {
+      const href = node.getAttribute('href');
+      if (href) line += ` [${href}]`;
+    }
+    if (node.tagName === 'INPUT') {
+      const type = node.getAttribute('type') || 'text';
+      const value = (node as HTMLInputElement).value;
+      line += ` [${type}]`;
+      if (value) line += ` value="${value}"`;
+    }
+    if (node.tagName === 'BUTTON' && node.getAttribute('type')) {
+      line += ` [${node.getAttribute('type')}]`;
+    }
+
+    // estimate tokens (rough: 4 chars ≈ 1 token)
+    estimatedTokens += line.length / 4;
+
+    if (!verbose && estimatedTokens > maxTokens) {
+      const remaining = elements.length - lines.length;
+      lines.push(`\n... ${remaining} more elements omitted (use verbose=true for full context)`);
+      break;
+    }
+
+    lines.push(line);
+  }
 
   return {
     snapshot: lines.join('\n'),
-    elementMap,
     snapshotId
   };
 }

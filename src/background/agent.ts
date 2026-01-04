@@ -1,5 +1,5 @@
 import { streamMessage, StreamCallbacks } from './api';
-import { executeTool, TOOLS, setElementMap } from './tools';
+import { executeTool, TOOLS, setSnapshotId } from './tools';
 import { emitToSidepanel } from './index';
 import type { Message, ContentBlock, ChatMessage, MessageType } from '../shared/types';
 import * as cdp from './cdp';
@@ -16,66 +16,99 @@ function formatToolMessage(toolName: string, input: Record<string, unknown>, pen
       };
 
     case 'page_action': {
-      const action = input.action as string;
-      const elementId = input.element_id as string | undefined;
-      const text = input.text as string | undefined;
-      const key = input.key as string | undefined;
-      const direction = input.direction as string | undefined;
-      const coords = input.coords as { x: number; y: number } | undefined;
-
-      let content = '';
-      if (action === 'click') {
-        content = pending ? `Clicking element ${elementId}` : `Clicked element ${elementId}`;
-      } else if (action === 'fill') {
-        const preview = text && text.length > 30 ? text.slice(0, 30) + '...' : text;
-        content = pending ? `Filling "${preview}"` : `Filled "${preview}"`;
-      } else if (action === 'hover') {
-        content = pending ? `Hovering element ${elementId}` : `Hovered element ${elementId}`;
-      } else if (action === 'press_key') {
-        content = pending ? `Pressing ${key}` : `Pressed ${key}`;
-      } else if (action === 'scroll') {
-        content = pending ? `Scrolling ${direction || 'down'}` : `Scrolled ${direction || 'down'}`;
-      } else if (action === 'wait') {
-        content = pending ? 'Waiting' : 'Waited';
-      } else if (action === 'click_coords') {
-        content = pending ? `Clicking (${coords?.x}, ${coords?.y})` : `Clicked (${coords?.x}, ${coords?.y})`;
-      } else {
-        content = pending ? `Performing ${action}` : `Performed ${action}`;
+      if (input.click) {
+        return {
+          type: 'action',
+          content: pending ? `Clicking element ${input.click}` : `Clicked element ${input.click}`,
+          pending
+        };
       }
-
-      return { type: 'action', content, pending };
+      if (input.right_click) {
+        return {
+          type: 'action',
+          content: pending ? `Right-clicking element ${input.right_click}` : `Right-clicked element ${input.right_click}`,
+          pending
+        };
+      }
+      if (input.double_click) {
+        return {
+          type: 'action',
+          content: pending ? `Double-clicking element ${input.double_click}` : `Double-clicked element ${input.double_click}`,
+          pending
+        };
+      }
+      if (input.type_into) {
+        const text = input.text as string;
+        return {
+          type: 'action',
+          content: pending ? `Typing "${text}"` : `Typed "${text}"`,
+          pending
+        };
+      }
+      if (input.hover) {
+        return {
+          type: 'action',
+          content: pending ? `Hovering element ${input.hover}` : `Hovered element ${input.hover}`,
+          pending
+        };
+      }
+      if (input.scroll) {
+        return {
+          type: 'action',
+          content: pending ? `Scrolling ${input.scroll}` : `Scrolled ${input.scroll}`,
+          pending
+        };
+      }
+      if (input.press_key) {
+        return {
+          type: 'action',
+          content: pending ? `Pressing ${input.press_key}` : `Pressed ${input.press_key}`,
+          pending
+        };
+      }
+      return {
+        type: 'action',
+        content: pending ? 'Performing action' : 'Performed action',
+        pending
+      };
     }
 
     case 'browser_navigate': {
-      const action = input.action as string;
-      const url = input.url as string | undefined;
-
-      if (action === 'goto' && url) {
-        let domain = '';
-        try {
-          domain = new URL(url).hostname.replace('www.', '');
-        } catch { domain = url.slice(0, 30); }
+      if (input.go_to_url) {
+        const url = input.go_to_url as string;
         return {
           type: 'action',
-          content: pending ? `Navigating to ||${domain}||` : `Navigated to ||${domain}||`,
+          content: pending ? `Navigating to ${url}` : `Navigated to ${url}`,
           pending
         };
-      } else if (action === 'back') {
-        return { type: 'action', content: pending ? 'Going back' : 'Went back', pending };
-      } else if (action === 'forward') {
-        return { type: 'action', content: pending ? 'Going forward' : 'Went forward', pending };
-      } else if (action === 'reload') {
-        return { type: 'action', content: pending ? 'Reloading page' : 'Reloaded page', pending };
-      } else if (action === 'new_tab') {
-        return { type: 'action', content: pending ? 'Opening new tab' : 'Opened new tab', pending };
-      } else if (action === 'close_tab') {
-        return { type: 'action', content: pending ? 'Closing tab' : 'Closed tab', pending };
-      } else if (action === 'switch_tab') {
-        return { type: 'action', content: pending ? 'Switching tab' : 'Switched tab', pending };
       }
-
-      return { type: 'action', content: pending ? `Navigating (${action})` : `Navigated (${action})`, pending };
+      return {
+        type: 'action',
+        content: pending ? 'Navigating' : 'Navigated',
+        pending
+      };
     }
+
+    case 'get_page_text':
+      return {
+        type: 'action',
+        content: pending ? 'Getting page text' : 'Got page text',
+        pending
+      };
+
+    case 'find':
+      return {
+        type: 'action',
+        content: pending ? 'Finding elements' : 'Found elements',
+        pending
+      };
+
+    case 'run_javascript':
+      return {
+        type: 'action',
+        content: pending ? 'Running javascript' : 'Ran javascript',
+        pending
+      };
 
     default:
       return {
@@ -110,10 +143,10 @@ export function stopAgent(): void {
   emitToSidepanel({ type: 'agent:stopped' });
 }
 
-// listen for element map updates from content script
+// listen for snapshot id updates from content script
 chrome.runtime.onMessage.addListener((message) => {
-  if (message.type === 'elementMap:update') {
-    setElementMap(message.payload.map, message.payload.snapshotId);
+  if (message.type === 'snapshot:update') {
+    setSnapshotId(message.payload.snapshotId);
   }
 });
 
