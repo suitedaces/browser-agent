@@ -58,7 +58,24 @@ export const useAgentStore = create<AgentStore>((set, get) => ({
           break;
 
         case 'agent:stopped':
-          set({ isRunning: false, streamingText: '', streamingThinking: '' });
+          set(s => {
+            // save streaming text as final message before clearing
+            const newMessages = s.streamingText
+              ? [...s.messages, {
+                  id: crypto.randomUUID(),
+                  role: 'assistant' as const,
+                  content: s.streamingText,
+                  timestamp: Date.now()
+                }]
+              : s.messages;
+
+            return {
+              isRunning: false,
+              streamingText: '',
+              streamingThinking: '',
+              messages: newMessages
+            };
+          });
           break;
 
         case 'agent:error':
@@ -75,9 +92,7 @@ export const useAgentStore = create<AgentStore>((set, get) => ({
 
         case 'agent:message':
           set(s => ({
-            messages: [...s.messages, message.payload],
-            streamingText: '',
-            streamingThinking: ''
+            messages: [...s.messages, message.payload]
           }));
           break;
 

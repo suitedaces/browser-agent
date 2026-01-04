@@ -193,6 +193,7 @@ export class AgentSession {
               const result = await this.callExtensionTool(block.name, block.input as Record<string, unknown>);
 
               if (result.image) {
+                // cdp always returns jpeg screenshots
                 toolResults.push({
                   type: 'tool_result',
                   tool_use_id: block.id,
@@ -201,7 +202,7 @@ export class AgentSession {
                       type: 'image',
                       source: {
                         type: 'base64',
-                        media_type: 'image/png',
+                        media_type: 'image/jpeg',
                         data: result.image
                       }
                     }

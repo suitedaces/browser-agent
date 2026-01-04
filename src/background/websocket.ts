@@ -298,6 +298,8 @@ async function handleServerMessage(msg: ServerMessage) {
           break;
 
         case 'done':
+          // emit final message if there was any streaming text
+          // (will be cleared by stopAgent, so UI needs to save it first)
           stopAgent();
           break;
 
