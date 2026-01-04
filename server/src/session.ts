@@ -95,12 +95,6 @@ export class AgentSession {
         }
       ];
 
-      // emit to extension that we're starting
-      this.send({
-        type: 'agent_event',
-        event: { type: 'text', text: `Starting task: ${instructions}` }
-      });
-
       let iteration = 0;
 
       while (iteration < MAX_ITERATIONS) {
