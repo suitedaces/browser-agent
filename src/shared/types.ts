@@ -67,7 +67,6 @@ export type ModelOption =
   | 'zai-org/GLM-4.6';
 
 export interface Settings {
-  apiKey: string;
   model: ModelOption;
   voiceMode: boolean;
   deepgramKey?: string;
