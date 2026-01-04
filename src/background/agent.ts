@@ -230,6 +230,9 @@ export async function runAgent(tabId: number, instructions: string, contextScree
           }
         });
         running = false;
+      },
+      onRateLimitWait: (seconds) => {
+        emitToSidepanel({ type: 'agent:rate_limit_wait', payload: seconds });
       }
     };
 

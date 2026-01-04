@@ -12,7 +12,8 @@ export default function ChatView() {
     setInputText,
     submit,
     stop,
-    isRunning
+    isRunning,
+    rateLimitWait
   } = useAgentStore();
 
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -120,7 +121,14 @@ export default function ChatView() {
 
       {/* input area */}
       <div className="p-3 pt-0 shrink-0">
-        {isRunning ? (
+        {rateLimitWait > 0 ? (
+          <div className="w-full py-3 flex items-center justify-center gap-2 rounded-xl bg-orange-500/20 border border-orange-400/30 text-orange-300">
+            <svg className="w-3.5 h-3.5 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M12 2v4m0 12v4M4.93 4.93l2.83 2.83m8.48 8.48l2.83 2.83M2 12h4m12 0h4M4.93 19.07l2.83-2.83m8.48-8.48l2.83-2.83" strokeLinecap="round"/>
+            </svg>
+            <span className="text-[12px]">rate limited, retrying in {rateLimitWait}s</span>
+          </div>
+        ) : isRunning ? (
           <button
             onClick={stop}
             className="w-full py-3 flex items-center justify-center gap-2 rounded-xl bg-red-500/20 border border-red-400/30 text-red-300 hover:bg-red-500/30 transition-colors"

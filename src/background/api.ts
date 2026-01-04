@@ -8,6 +8,58 @@ export interface StreamCallbacks {
   onToolUse: (id: string, name: string, input: unknown) => void;
   onDone: (content: ContentBlock[]) => void;
   onError: (error: string) => void;
+  onRateLimitWait?: (secondsRemaining: number) => void;
+}
+
+async function makeRequest(
+  apiKey: string,
+  body: unknown,
+  attempt: number = 1,
+  onWait?: (secondsRemaining: number) => void
+): Promise<Response> {
+  const response = await fetch(API_URL, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': apiKey,
+      'anthropic-version': API_VERSION,
+      'anthropic-beta': BETA_HEADER,
+      'anthropic-dangerous-direct-browser-access': 'true'
+    },
+    body: JSON.stringify(body)
+  });
+
+  // handle rate limiting with exponential backoff
+  if (response.status === 429 && attempt < 4) {
+    const retryAfter = response.headers.get('retry-after');
+    const waitMs = retryAfter
+      ? parseInt(retryAfter) * 1000
+      : Math.pow(2, attempt) * 1000; // exponential backoff: 2s, 4s, 8s
+
+    console.log(`[api] rate limited, retrying in ${waitMs}ms (attempt ${attempt}/3)`);
+
+    // countdown timer
+    if (onWait) {
+      const endTime = Date.now() + waitMs;
+      const interval = setInterval(() => {
+        const remaining = Math.ceil((endTime - Date.now()) / 1000);
+        if (remaining <= 0) {
+          clearInterval(interval);
+        } else {
+          onWait(remaining);
+        }
+      }, 100);
+
+      await new Promise(r => setTimeout(r, waitMs));
+      clearInterval(interval);
+    } else {
+      await new Promise(r => setTimeout(r, waitMs));
+    }
+
+    return makeRequest(apiKey, body, attempt + 1, onWait);
+  }
+
+  return response;
 }
 
 export async function streamMessage(
@@ -44,24 +96,19 @@ export async function streamMessage(
     }
   }
 
-  const response = await fetch(API_URL, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-api-key': settings.apiKey,
-      'anthropic-version': API_VERSION,
-      'anthropic-beta': BETA_HEADER,
-      'anthropic-dangerous-direct-browser-access': 'true'
-    },
-    body: JSON.stringify(body)
-  });
+  const response = await makeRequest(settings.apiKey, body, 1, callbacks.onRateLimitWait);
 
   console.log('[api] response status:', response.status);
 
   if (!response.ok) {
     const text = await response.text();
     console.log('[api] error response:', text);
-    callbacks.onError(`API error: ${response.status} ${text}`);
+
+    if (response.status === 429) {
+      callbacks.onError('Rate limit exceeded after retries. Please wait a moment and try again.');
+    } else {
+      callbacks.onError(`API error: ${response.status} ${text}`);
+    }
     return;
   }
 

@@ -10,6 +10,7 @@ interface AgentStore {
   inputText: string;
   showSettings: boolean;
   settings: Settings | null;
+  rateLimitWait: number;
 
   setInputText: (text: string) => void;
   setShowSettings: (show: boolean) => void;
@@ -28,6 +29,7 @@ export const useAgentStore = create<AgentStore>((set, get) => ({
   inputText: '',
   showSettings: false,
   settings: null,
+  rateLimitWait: 0,
 
   setInputText: (text) => set({ inputText: text }),
   setShowSettings: (show) => set({ showSettings: show }),
@@ -94,6 +96,10 @@ export const useAgentStore = create<AgentStore>((set, get) => ({
                 : m
             )
           }));
+          break;
+
+        case 'agent:rate_limit_wait':
+          set({ rateLimitWait: message.payload });
           break;
 
         case 'agent:screenshot':

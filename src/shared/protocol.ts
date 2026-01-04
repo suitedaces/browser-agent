@@ -21,6 +21,7 @@ export type BackgroundMessage =
   | { type: 'agent:screenshot'; payload: string }
   | { type: 'agent:message'; payload: ChatMessage }
   | { type: 'agent:update_message'; payload: { id: string; content?: string; pending?: boolean; type?: string; toolResult?: string; durationMs?: number } }
+  | { type: 'agent:rate_limit_wait'; payload: number }
   | { type: 'settings:data'; payload: Settings }
   | { type: 'ptt:interim'; payload: string }
   | { type: 'ptt:final'; payload: string }
