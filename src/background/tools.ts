@@ -195,26 +195,31 @@ export async function executeTool(tabId: number, name: string, input: Record<str
     case 'browser_navigate': {
       if (input.go_to_url) {
         await chrome.tabs.update(tabId, { url: input.go_to_url as string });
+        await new Promise(r => setTimeout(r, 2000));
         return { text: `Navigated to ${input.go_to_url}` };
       }
 
       if (input.go_back) {
         await chrome.tabs.goBack(tabId);
+        await new Promise(r => setTimeout(r, 2000));
         return { text: 'Went back' };
       }
 
       if (input.go_forward) {
         await chrome.tabs.goForward(tabId);
+        await new Promise(r => setTimeout(r, 2000));
         return { text: 'Went forward' };
       }
 
       if (input.reload) {
         await chrome.tabs.reload(tabId);
+        await new Promise(r => setTimeout(r, 2000));
         return { text: 'Reloaded page' };
       }
 
       if (input.open_new_tab) {
         await chrome.tabs.create({ url: input.open_new_tab as string });
+        await new Promise(r => setTimeout(r, 2000));
         return { text: `Opened new tab: ${input.open_new_tab}` };
       }
 

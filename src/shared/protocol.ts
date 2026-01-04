@@ -16,6 +16,7 @@ export type BackgroundMessage =
   | { type: 'agent:error'; payload: string }
   | { type: 'agent:thinking'; payload: string }
   | { type: 'agent:text'; payload: string }
+  | { type: 'agent:flush_streaming_text' }
   | { type: 'agent:tool'; payload: { name: string; input: unknown } }
   | { type: 'agent:tool_result'; payload: { name: string; result: string } }
   | { type: 'agent:screenshot'; payload: string }

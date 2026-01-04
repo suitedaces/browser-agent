@@ -60,9 +60,15 @@ export interface AgentState {
 }
 
 // settings
+export type ModelOption =
+  | 'claude-sonnet-4-5-20250929'
+  | 'claude-haiku-4-5-20251001'
+  | 'zai-org/GLM-4.7'
+  | 'zai-org/GLM-4.6';
+
 export interface Settings {
   apiKey: string;
-  model: 'claude-sonnet-4-20250514' | 'claude-haiku-4-5-20251001';
+  model: ModelOption;
   voiceMode: boolean;
   deepgramKey?: string;
   elevenlabsKey?: string;

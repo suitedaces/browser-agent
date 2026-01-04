@@ -10,25 +10,20 @@ export default function Settings() {
   return (
     <div className="p-4 space-y-5">
       <div>
-        <label className="block text-[11px] text-white/40 mb-1.5 uppercase tracking-wide">Anthropic API Key</label>
-        <input
-          type="password"
-          value={settings.apiKey}
-          onChange={(e) => saveSettings({ apiKey: e.target.value })}
-          placeholder="sk-ant-..."
-          className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 text-[13px] text-white/90 placeholder-white/30 focus:outline-none focus:border-orange-400/50 transition-colors"
-        />
-      </div>
-
-      <div>
         <label className="block text-[11px] text-white/40 mb-1.5 uppercase tracking-wide">Model</label>
         <select
           value={settings.model}
           onChange={(e) => saveSettings({ model: e.target.value as SettingsType['model'] })}
-          className="glass-select w-full"
+          className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 text-[13px] text-white/90 focus:outline-none focus:border-orange-400/50 transition-colors"
         >
-          <option value="claude-sonnet-4-20250514">Claude Sonnet 4</option>
-          <option value="claude-haiku-4-5-20251001">Claude Haiku 4.5</option>
+          <optgroup label="Claude (Anthropic)">
+            <option value="claude-sonnet-4-5-20250929">Claude Sonnet 4.5</option>
+            <option value="claude-haiku-4-5-20251001">Claude Haiku 4.5</option>
+          </optgroup>
+          <optgroup label="GLM (Baseten)">
+            <option value="zai-org/GLM-4.7">GLM-4.7</option>
+            <option value="zai-org/GLM-4.6">GLM-4.6</option>
+          </optgroup>
         </select>
       </div>
 

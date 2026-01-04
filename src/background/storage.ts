@@ -2,7 +2,7 @@ import type { Settings } from '../shared/types';
 
 const DEFAULT_SETTINGS: Settings = {
   apiKey: '',
-  model: 'claude-sonnet-4-20250514',
+  model: 'claude-sonnet-4-5-20250929',
   voiceMode: false
 };
 

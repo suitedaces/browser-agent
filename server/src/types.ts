@@ -2,7 +2,7 @@
 export type ExtensionMessage =
   | { type: 'tool_result'; id: string; result: { text?: string; image?: string } }
   | { type: 'snapshot_update'; snapshotId: number }
-  | { type: 'screenshot'; data: string };
+  | { type: 'start_task'; instructions: string; model?: string };
 
 // messages from server → extension
 export type ServerMessage =

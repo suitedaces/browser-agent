@@ -290,7 +290,9 @@ async function handleServerMessage(msg: ServerMessage) {
           break;
 
         case 'tool_use':
-          // already handled in tool_request
+          // text that streamed before this tool is part of the same assistant message
+          // save any accumulated streaming text as a text-only message before the tool
+          emitToSidepanel({ type: 'agent:flush_streaming_text' });
           break;
 
         case 'tool_result':
@@ -298,8 +300,8 @@ async function handleServerMessage(msg: ServerMessage) {
           break;
 
         case 'done':
-          // emit final message if there was any streaming text
-          // (will be cleared by stopAgent, so UI needs to save it first)
+          // save any final streaming text as a text-only message
+          emitToSidepanel({ type: 'agent:flush_streaming_text' });
           stopAgent();
           break;
 
@@ -404,10 +406,15 @@ export async function runAgent(tabId: number, instructions: string, contextScree
     }
   });
 
-  // send task to server
+  // get model from settings
+  const { getSettings } = await import('./storage');
+  const settings = await getSettings();
+
+  // send task to server with model
   send({
     type: 'start_task',
-    instructions
+    instructions,
+    model: settings.model
   });
 }
 

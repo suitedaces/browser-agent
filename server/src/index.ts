@@ -8,19 +8,24 @@ const PORT = 3000;
 
 const wss = new WebSocketServer({ port: PORT });
 
+const MODEL = process.env.MODEL || 'claude-sonnet-4-5-20250929';
+
 console.log(`[server] WebSocket server running on ws://localhost:${PORT}`);
+console.log(`[server] Using model: ${MODEL}`);
 
 wss.on('connection', (ws, req) => {
   console.log('[server] extension connected from', req.socket.remoteAddress);
 
-  const apiKey = process.env.ANTHROPIC_API_KEY;
-  if (!apiKey) {
-    console.error('[server] ANTHROPIC_API_KEY not set in .env');
+  const anthropicKey = process.env.ANTHROPIC_API_KEY;
+  const basetenKey = process.env.BASETEN_API_KEY;
+
+  if (!anthropicKey && !basetenKey) {
+    console.error('[server] No API keys set in .env');
     ws.close(1008, 'Server configuration error');
     return;
   }
 
-  const session = new AgentSession(ws, apiKey);
+  let session: AgentSession | null = null;
 
   // listen for task requests
   ws.on('message', (data: Buffer) => {
@@ -28,7 +33,18 @@ wss.on('connection', (ws, req) => {
       const msg = JSON.parse(data.toString());
 
       if (msg.type === 'start_task') {
-        console.log('[server] starting task:', msg.instructions);
+        const taskModel = msg.model || MODEL;
+        console.log('[server] starting task with model:', taskModel);
+
+        // recreate session if model changed
+        if (!session || session.currentModel !== taskModel) {
+          session = new AgentSession(ws, {
+            anthropicKey,
+            basetenKey,
+            model: taskModel
+          });
+        }
+
         session.runTask(msg.instructions).catch(e => {
           console.error('[server] task error:', e);
         });

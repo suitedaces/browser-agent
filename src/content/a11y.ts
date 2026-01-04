@@ -1,4 +1,13 @@
-let snapshotId = 0;
+// use window property to prevent multiple injections
+declare global {
+  interface Window {
+    __taskhomieSnapshotId?: number;
+  }
+}
+
+if (typeof window.__taskhomieSnapshotId === 'undefined') {
+  window.__taskhomieSnapshotId = 0;
+}
 
 interface SnapshotResult {
   snapshot: string;
@@ -6,7 +15,8 @@ interface SnapshotResult {
 }
 
 export function getA11ySnapshot(verbose: boolean, maxTokens = 15000): SnapshotResult {
-  snapshotId++;
+  window.__taskhomieSnapshotId = (window.__taskhomieSnapshotId || 0) + 1;
+  const snapshotId = window.__taskhomieSnapshotId;
   let nodeIndex = 0;
 
   // collect all elements with priority scores
