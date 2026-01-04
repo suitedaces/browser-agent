@@ -157,13 +157,31 @@ export async function getBackendNodeId(uid: string): Promise<number> {
 
 // get element center from backendNodeId
 export async function getElementCenter(backendNodeId: number): Promise<{ x: number; y: number }> {
-  const { model } = await sendCommand<{ model: { content: number[] } }>('DOM.getBoxModel', {
-    backendNodeId
-  });
+  try {
+    const { model } = await sendCommand<{ model: { content: number[] } }>('DOM.getBoxModel', {
+      backendNodeId
+    });
 
-  const [x1, y1, x2, , , y3] = model.content;
-  const x = (x1 + x2) / 2;
-  const y = (y1 + y3) / 2;
+    const [x1, y1, x2, , , y3] = model.content;
+    const x = (x1 + x2) / 2;
+    const y = (y1 + y3) / 2;
 
-  return { x, y };
+    return { x, y };
+  } catch (e) {
+    // fallback to getContentQuads for elements without box model
+    const { quads } = await sendCommand<{ quads: number[][] }>('DOM.getContentQuads', {
+      backendNodeId
+    });
+
+    if (!quads || quads.length === 0) {
+      throw new Error('Element has no position data');
+    }
+
+    // use first quad, calculate center from 8 coordinates [x1,y1,x2,y2,x3,y3,x4,y4]
+    const quad = quads[0];
+    const x = (quad[0] + quad[2] + quad[4] + quad[6]) / 4;
+    const y = (quad[1] + quad[3] + quad[5] + quad[7]) / 4;
+
+    return { x, y };
+  }
 }

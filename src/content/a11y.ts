@@ -40,9 +40,9 @@ export function getA11ySnapshot(verbose: boolean, maxTokens = 15000): SnapshotRe
     // penalize depth (prefer shallow elements)
     score -= depth * 2;
 
-    // penalize hidden elements
+    // exclude completely hidden elements
     if ((node as HTMLElement).offsetWidth === 0 || (node as HTMLElement).offsetHeight === 0) {
-      score -= 100;
+      return -999; // definitely exclude
     }
 
     // penalize decorative
