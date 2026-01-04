@@ -1,4 +1,4 @@
-import { runAgent, stopAgent } from './agent';
+import { runAgent, stopAgent } from './websocket';
 import { getSettings, setSettings } from './storage';
 import type { SidepanelMessage, BackgroundMessage } from '../shared/protocol';
 
